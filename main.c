@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include "parse.h"
 #include "execute.h"
+#include "builtins.h"
 
 #define INPUT_SIZE 1024
 
@@ -52,6 +53,11 @@ int main(void)
 
         if (strcmp(pl.cmds[0].argv[0], "exit") == 0)
             break;
+
+        if (pl.num_cmds == 1 && is_builtin(pl.cmds[0].argv[0])) {
+            run_builtin(&pl.cmds[0]);
+            continue;
+        }
 
         execute_pipeline(&pl);
     }
