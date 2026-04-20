@@ -1,11 +1,17 @@
 # mini-unix-shell
 
+A minimal Unix shell written in C using POSIX system calls.
+
 ## Features
 
-- Interactive prompt (mysh> )
+- Interactive prompt (`mysh> `)
 - Command parsing with whitespace tokenization
-- Process execution via fork() / execvp() / waitpid()
-- Clean exit with exit command or Ctrl+D
+- Pipelines (`ls | grep .c | wc -l`)
+- I/O redirection (`<`, `>`, `>>`)
+- Background execution (`sleep 5 &`)
+- Built-in commands (`cd`, `exit`)
+- Signal handling (Ctrl+C / Ctrl+Z ignored in shell)
+- Automatic zombie reaping via `SIGCHLD`
 
 ## Build
 
@@ -13,10 +19,10 @@
 make
 ```
 
-Or without make:
+## Test
 
 ```bash
-gcc -Wall -Wextra -pedantic -std=c99 -o mysh main.c parse.c execute.c
+make test
 ```
 
 ## Usage
@@ -25,9 +31,25 @@ gcc -Wall -Wextra -pedantic -std=c99 -o mysh main.c parse.c execute.c
 $ ./mysh
 mysh> echo hello world
 hello world
-mysh> ls -l
-...
+mysh> ls | wc -l
+12
+mysh> echo output > file.txt
+mysh> cat < file.txt
+output
+mysh> sleep 5 &
+[bg] 12345
+mysh> cd /tmp
+mysh> pwd
+/tmp
 mysh> exit
 ```
 
-#
+## Project Structure
+
+| File | Purpose |
+|------|---------|
+| `main.c` | Shell loop, signal setup |
+| `parse.c` / `parse.h` | Input tokenization into pipeline struct |
+| `execute.c` / `execute.h` | Pipeline execution with fork/pipe/dup2 |
+| `builtins.c` / `builtins.h` | Built-in commands (cd) |
+| `test.sh` | Automated test suite |

@@ -1,7 +1,7 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -pedantic -std=c99
 TARGET  = mysh
-SRCS    = main.c parse.c execute.c
+SRCS    = main.c parse.c execute.c builtins.c
 OBJS    = $(SRCS:.c=.o)
 
 all: $(TARGET)
@@ -15,4 +15,7 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean
+test: $(TARGET)
+	bash test.sh
+
+.PHONY: all clean test
