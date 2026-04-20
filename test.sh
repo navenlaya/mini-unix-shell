@@ -87,6 +87,34 @@ LONGSTR=$(python3 -c "print('x' * 2000)")
 run_test "rejects overlong line" "$LONGSTR" "mysh: input too long"
 
 echo ""
+echo "=== environment variables ==="
+run_test "export and expand" "$(printf 'export MYTEST=hello42\necho $MYTEST')" "hello42"
+run_test "unset removes var" "$(printf 'export MYTEST=hello42\nunset MYTEST\necho $MYTEST')" ""
+run_test "expand unknown var" "echo \$NOSUCHVAR" ""
+run_test "mixed text and var" "$(printf 'export FOO=bar\necho prefix_${FOO}_suffix')" 'prefix_bar_suffix'
+echo ""
+echo "=== glob expansion ==="
+GLOBDIR="$TMPDIR/globtest"
+mkdir -p "$GLOBDIR"
+touch "$GLOBDIR/a.txt" "$GLOBDIR/b.txt" "$GLOBDIR/c.log"
+run_test "glob *.txt" "ls $GLOBDIR/*.txt" "$GLOBDIR/a.txt
+$GLOBDIR/b.txt"
+run_test "glob no match stays literal" "echo /tmp/nonexistent_glob_mysh_test*" "/tmp/nonexistent_glob_mysh_test*"
+
+echo ""
+echo "=== help ==="
+HELP_OUT=$(echo "help" | $SHELL 2>&1 | sed 's/mysh> //g' | head -1)
+if [ "$HELP_OUT" = "mysh - mini unix shell" ]; then
+    echo "  PASS: help shows header"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: help shows header"
+    echo "    expected: 'mysh - mini unix shell'"
+    echo "    got:      '$HELP_OUT'"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
 echo "=== exit ==="
 run_test "exit cleanly" "exit" ""
 
