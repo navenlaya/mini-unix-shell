@@ -1,7 +1,7 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -pedantic -std=c99
 TARGET  = mysh
-SRCS    = main.c parse.c execute.c builtins.c
+SRCS    = main.c parse.c execute.c builtins.c history.c
 OBJS    = $(SRCS:.c=.o)
 
 all: $(TARGET)

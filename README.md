@@ -9,9 +9,13 @@ A minimal Unix shell written in C using POSIX system calls.
 - Pipelines (`ls | grep .c | wc -l`)
 - I/O redirection (`<`, `>`, `>>`)
 - Background execution (`sleep 5 &`)
-- Built-in commands (`cd`, `exit`)
-- Signal handling (Ctrl+C / Ctrl+Z ignored in shell)
+- Built-in commands (`cd`, `exit`, `history`, `status`)
+- Tilde expansion (`~` → `$HOME`)
+- Command history (last 100 commands)
+- Exit code tracking (`status` prints last exit code)
+- Signal handling (Ctrl+C / Ctrl+Z safe)
 - Automatic zombie reaping via `SIGCHLD`
+- Overlong input detection
 
 ## Build
 
@@ -38,9 +42,15 @@ mysh> cat < file.txt
 output
 mysh> sleep 5 &
 [bg] 12345
-mysh> cd /tmp
-mysh> pwd
-/tmp
+mysh> cd ~/projects
+mysh> notarealcmd
+notarealcmd: command not found
+mysh> status
+127
+mysh> history
+  1  echo hello world
+  2  ls | wc -l
+  ...
 mysh> exit
 ```
 
@@ -48,8 +58,9 @@ mysh> exit
 
 | File | Purpose |
 |------|---------|
-| `main.c` | Shell loop, signal setup |
-| `parse.c` / `parse.h` | Input tokenization into pipeline struct |
+| `main.c` | Shell loop, signal setup, input handling |
+| `parse.c` / `parse.h` | Tokenization, tilde expansion, pipeline struct |
 | `execute.c` / `execute.h` | Pipeline execution with fork/pipe/dup2 |
-| `builtins.c` / `builtins.h` | Built-in commands (cd) |
-| `test.sh` | Automated test suite |
+| `builtins.c` / `builtins.h` | Built-in commands (cd, history, status) |
+| `history.c` / `history.h` | Command history storage |
+| `test.sh` | Automated test suite (24 tests) |
