@@ -61,6 +61,32 @@ run_test "bad input file" "cat < /tmp/nonexistent_mysh_test_xyz" "/tmp/nonexiste
 run_test "cd too many args" "cd /tmp /var" "cd: too many arguments"
 
 echo ""
+echo "=== history ==="
+run_test "history records commands" "$(printf 'echo aaa\necho bbb\nhistory')" "aaa
+bbb
+  1  echo aaa
+  2  echo bbb
+  3  history"
+
+echo ""
+echo "=== tilde expansion ==="
+run_test "bare tilde" "echo ~" "$HOME"
+run_test "tilde slash" "echo ~/foo" "$HOME/foo"
+run_test "no expand mid-word" "echo hello~" "hello~"
+
+echo ""
+echo "=== status tracking ==="
+run_test "status after success" "$(printf 'echo ok\nstatus')" "ok
+0"
+run_test "status after failure" "$(printf 'notarealcmd123\nstatus')" "notarealcmd123: command not found
+127"
+
+echo ""
+echo "=== overlong input ==="
+LONGSTR=$(python3 -c "print('x' * 2000)")
+run_test "rejects overlong line" "$LONGSTR" "mysh: input too long"
+
+echo ""
 echo "=== exit ==="
 run_test "exit cleanly" "exit" ""
 
