@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <glob.h>
 #include <sys/wait.h>
 #include "execute.h"
 
@@ -42,11 +43,47 @@ static int setup_redirections(command_t *cmd)
     return 0;
 }
 
+static int has_glob_chars(const char *s)
+{
+    for (; *s; s++) {
+        if (*s == '*' || *s == '?' || *s == '[')
+            return 1;
+    }
+    return 0;
+}
+
+static void expand_globs(command_t *cmd)
+{
+    static char *expanded[MAX_ARGS + 1];
+    int ei = 0;
+
+    for (int i = 0; cmd->argv[i] && ei < MAX_ARGS; i++) {
+        if (!has_glob_chars(cmd->argv[i])) {
+            expanded[ei++] = cmd->argv[i];
+            continue;
+        }
+        glob_t g;
+        int ret = glob(cmd->argv[i], GLOB_NOCHECK, NULL, &g);
+        if (ret != 0) {
+            expanded[ei++] = cmd->argv[i];
+            continue;
+        }
+        for (size_t j = 0; j < g.gl_pathc && ei < MAX_ARGS; j++)
+            expanded[ei++] = g.gl_pathv[j];
+        /* intentionally not calling globfree — child will exec or exit soon */
+    }
+    expanded[ei] = NULL;
+
+    for (int i = 0; i <= ei; i++)
+        cmd->argv[i] = expanded[i];
+}
+
 static void run_child(command_t *cmd)
 {
     restore_signals();
     if (setup_redirections(cmd) < 0)
         exit(EXIT_FAILURE);
+    expand_globs(cmd);
     execvp(cmd->argv[0], cmd->argv);
     fprintf(stderr, "%s: command not found\n", cmd->argv[0]);
     exit(127);
