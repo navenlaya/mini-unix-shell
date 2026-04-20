@@ -1,9 +1,22 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include "execute.h"
+
+static void restore_signals(void)
+{
+    struct sigaction sa;
+    sa.sa_handler = SIG_DFL;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTSTP, &sa, NULL);
+    sigaction(SIGCHLD, &sa, NULL);
+}
 
 static int setup_redirections(command_t *cmd)
 {
@@ -31,11 +44,20 @@ static int setup_redirections(command_t *cmd)
 
 static void run_child(command_t *cmd)
 {
+    restore_signals();
     if (setup_redirections(cmd) < 0)
         exit(EXIT_FAILURE);
     execvp(cmd->argv[0], cmd->argv);
     fprintf(stderr, "%s: command not found\n", cmd->argv[0]);
-    exit(EXIT_FAILURE);
+    exit(127);
+}
+
+static void cleanup_children(pid_t *pids, int count)
+{
+    for (int i = 0; i < count; i++) {
+        kill(pids[i], SIGTERM);
+        waitpid(pids[i], NULL, 0);
+    }
 }
 
 int execute_pipeline(pipeline_t *pl)
@@ -43,6 +65,7 @@ int execute_pipeline(pipeline_t *pl)
     int n = pl->num_cmds;
     int prev_fd = -1;
     pid_t pids[MAX_CMDS];
+    int spawned = 0;
 
     for (int i = 0; i < n; i++) {
         int pipefd[2] = {-1, -1};
@@ -50,6 +73,9 @@ int execute_pipeline(pipeline_t *pl)
         if (i < n - 1) {
             if (pipe(pipefd) < 0) {
                 perror("pipe");
+                cleanup_children(pids, spawned);
+                if (prev_fd != -1)
+                    close(prev_fd);
                 return -1;
             }
         }
@@ -57,6 +83,13 @@ int execute_pipeline(pipeline_t *pl)
         pid_t pid = fork();
         if (pid < 0) {
             perror("fork");
+            if (pipefd[0] != -1) {
+                close(pipefd[0]);
+                close(pipefd[1]);
+            }
+            cleanup_children(pids, spawned);
+            if (prev_fd != -1)
+                close(prev_fd);
             return -1;
         }
 
@@ -74,6 +107,7 @@ int execute_pipeline(pipeline_t *pl)
         }
 
         pids[i] = pid;
+        spawned++;
 
         if (prev_fd != -1)
             close(prev_fd);
@@ -87,7 +121,7 @@ int execute_pipeline(pipeline_t *pl)
         int status = 0;
         for (int i = 0; i < n; i++)
             waitpid(pids[i], &status, 0);
-        return status;
+        return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
     }
 
     printf("[bg] %d\n", pids[n - 1]);
