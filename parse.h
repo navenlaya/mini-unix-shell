@@ -3,6 +3,7 @@
 
 #define MAX_ARGS 128
 #define MAX_CMDS 16
+#define MAX_EXPAND 4096
 
 typedef struct {
     char *argv[MAX_ARGS + 1];
