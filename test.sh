@@ -93,6 +93,15 @@ run_test "unset removes var" "$(printf 'export MYTEST=hello42\nunset MYTEST\nech
 run_test "expand unknown var" "echo \$NOSUCHVAR" ""
 run_test "mixed text and var" "$(printf 'export FOO=bar\necho prefix_${FOO}_suffix')" 'prefix_bar_suffix'
 echo ""
+echo "=== stderr redirection ==="
+run_test "2> captures stderr" "$(printf 'ls /no_such_path_xyz 2> %s/err.txt\ncat %s/err.txt' "$TMPDIR" "$TMPDIR")" "ls: /no_such_path_xyz: No such file or directory"
+run_test "2> leaves stdout alone" "echo visible 2> $TMPDIR/discard.txt" "visible"
+run_test "2>> appends stderr" "$(printf 'ls /no_a 2> %s/app.txt\nls /no_b 2>> %s/app.txt\nwc -l < %s/app.txt' "$TMPDIR" "$TMPDIR" "$TMPDIR")" "       2"
+run_test "2>&1 merges with redirected stdout" "$(printf "sh -c 'echo OUT; echo ERR >&2' > %s/both.txt 2>&1\nsort %s/both.txt" "$TMPDIR" "$TMPDIR")" "ERR
+OUT"
+run_test "bare 2 still works as arg" "echo 2 hello" "2 hello"
+
+echo ""
 echo "=== quoting ==="
 run_test "single quotes preserve spaces" "echo 'hello world'" "hello world"
 run_test "double quotes preserve spaces" 'echo "hello world"' "hello world"
