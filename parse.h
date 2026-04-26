@@ -10,7 +10,10 @@ typedef struct {
     int quoted[MAX_ARGS + 1];
     char *infile;
     char *outfile;
+    char *errfile;
     int append;
+    int err_append;
+    int err_to_out;
 } command_t;
 
 typedef struct {

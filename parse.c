@@ -60,7 +60,10 @@ static void init_command(command_t *cmd)
     cmd->quoted[0] = 0;
     cmd->infile = NULL;
     cmd->outfile = NULL;
+    cmd->errfile = NULL;
     cmd->append = 0;
+    cmd->err_append = 0;
+    cmd->err_to_out = 0;
 }
 
 // Read one operator or one word from *pp.
@@ -93,6 +96,22 @@ static int next_token(const char **pp, char *out, int *is_op, int *was_quoted)
         } else {
             out[0] = '>'; out[1] = '\0';
             p++;
+        }
+        *is_op = 1;
+        *pp = p;
+        return 1;
+    }
+    // stderr redirection: 2>, 2>>, 2>&1
+    if (*p == '2' && *(p + 1) == '>') {
+        if (*(p + 2) == '&' && *(p + 3) == '1') {
+            strcpy(out, "2>&1");
+            p += 4;
+        } else if (*(p + 2) == '>') {
+            strcpy(out, "2>>");
+            p += 3;
+        } else {
+            strcpy(out, "2>");
+            p += 2;
         }
         *is_op = 1;
         *pp = p;
@@ -243,8 +262,10 @@ int parse_input(char *input, pipeline_t *pl)
                 ai = 0;
             } else if (strcmp(tokbuf, "<") == 0
                     || strcmp(tokbuf, ">") == 0
-                    || strcmp(tokbuf, ">>") == 0) {
-                char op[3];
+                    || strcmp(tokbuf, ">>") == 0
+                    || strcmp(tokbuf, "2>") == 0
+                    || strcmp(tokbuf, "2>>") == 0) {
+                char op[4];
                 strcpy(op, tokbuf);
                 int n_op = 0, n_q = 0;
                 int nrc = next_token(&p, tokbuf, &n_op, &n_q);
@@ -257,10 +278,15 @@ int parse_input(char *input, pipeline_t *pl)
                 slot[MAX_EXPAND - 1] = '\0';
                 if (op[0] == '<') {
                     pl->cmds[ci].infile = slot;
+                } else if (op[0] == '2') {
+                    pl->cmds[ci].errfile = slot;
+                    pl->cmds[ci].err_append = (strcmp(op, "2>>") == 0);
                 } else {
                     pl->cmds[ci].outfile = slot;
                     pl->cmds[ci].append = (op[1] == '>');
                 }
+            } else if (strcmp(tokbuf, "2>&1") == 0) {
+                pl->cmds[ci].err_to_out = 1;
             } else if (strcmp(tokbuf, "&") == 0) {
                 pl->background = 1;
             }

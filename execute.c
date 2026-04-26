@@ -40,6 +40,19 @@ static int setup_redirections(command_t *cmd)
         dup2(fd, STDOUT_FILENO);
         close(fd);
     }
+    if (cmd->errfile) {
+        int flags = O_WRONLY | O_CREAT | (cmd->err_append ? O_APPEND : O_TRUNC);
+        int fd = open(cmd->errfile, flags, 0644);
+        if (fd < 0) {
+            perror(cmd->errfile);
+            return -1;
+        }
+        dup2(fd, STDERR_FILENO);
+        close(fd);
+    }
+    // 2>&1 applied last so it picks up any redirected stdout
+    if (cmd->err_to_out)
+        dup2(STDOUT_FILENO, STDERR_FILENO);
     return 0;
 }
 
