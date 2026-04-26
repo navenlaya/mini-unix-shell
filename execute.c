@@ -58,7 +58,8 @@ static void expand_globs(command_t *cmd)
     int ei = 0;
 
     for (int i = 0; cmd->argv[i] && ei < MAX_ARGS; i++) {
-        if (!has_glob_chars(cmd->argv[i])) {
+        // Skip glob expansion on quoted args: echo '*.c' stays literal
+        if (cmd->quoted[i] || !has_glob_chars(cmd->argv[i])) {
             expanded[ei++] = cmd->argv[i];
             continue;
         }

@@ -7,6 +7,7 @@
 
 typedef struct {
     char *argv[MAX_ARGS + 1];
+    int quoted[MAX_ARGS + 1];
     char *infile;
     char *outfile;
     int append;
