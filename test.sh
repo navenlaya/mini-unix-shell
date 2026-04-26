@@ -93,6 +93,20 @@ run_test "unset removes var" "$(printf 'export MYTEST=hello42\nunset MYTEST\nech
 run_test "expand unknown var" "echo \$NOSUCHVAR" ""
 run_test "mixed text and var" "$(printf 'export FOO=bar\necho prefix_${FOO}_suffix')" 'prefix_bar_suffix'
 echo ""
+echo "=== quoting ==="
+run_test "single quotes preserve spaces" "echo 'hello world'" "hello world"
+run_test "double quotes preserve spaces" 'echo "hello world"' "hello world"
+run_test "double quotes expand vars" "$(printf 'export QQ=val\necho "x is $QQ"')" "x is val"
+run_test "single quotes literal vars" "$(printf "export QQ=val\necho 'x is \$QQ'")" 'x is $QQ'
+run_test "backslash escapes space" 'echo a\ b\ c' "a b c"
+run_test "backslash escapes dollar" 'echo \$HOME' '$HOME'
+run_test "backslash in double quotes" 'echo "a\"b"' 'a"b'
+run_test "operator literal in quotes" "echo 'a | b'" "a | b"
+run_test "adjacent quotes concat" "echo a\"b\"c'd'e" "abcde"
+run_test "unmatched double quote errors" 'echo "oops' "mysh: syntax error: unmatched double quote"
+run_test "glob suppressed in quotes" "echo '*.nosuchext'" "*.nosuchext"
+
+echo ""
 echo "=== glob expansion ==="
 GLOBDIR="$TMPDIR/globtest"
 mkdir -p "$GLOBDIR"
