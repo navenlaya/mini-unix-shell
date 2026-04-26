@@ -1,15 +1,17 @@
 # mini-unix-shell
 
-A minimal Unix shell written in C using POSIX system calls. Supports pipelines, I/O redirection, background execution, environment variables, glob expansion, and built-in commands.
+A minimal Unix shell written in C using POSIX system calls. Supports pipelines, I/O redirection, background execution, environment variables, glob expansion, quoting, and built-in commands.
 
 ## Features
 
 - Pipelines — `ls | grep .c | wc -l`
 - I/O redirection — `<`, `>`, `>>`
+- Stderr redirection — `2>`, `2>>`, `2>&1`
 - Background execution — `sleep 5 &`
 - Environment variables — `export`, `unset`, `$VAR`, `${VAR}`
 - Glob expansion — `ls *.c`, `rm /tmp/*.log`
 - Tilde expansion — `cd ~/projects`
+- Quoting & escapes — `'...'`, `"..."`, `\`
 - Built-in commands — `cd`, `exit`, `history`, `status`, `export`, `unset`, `help`
 - Command history — last 100 commands
 - Exit code tracking — `status` prints the last return code
@@ -44,6 +46,9 @@ mysh> sleep 5 &
 mysh> export NAME=mysh
 mysh> echo $NAME
 mysh
+mysh> echo "hello $NAME"
+hello mysh
+mysh> ls /no/such/path 2> err.log
 mysh> cd ~/projects
 mysh> status
 0
@@ -64,4 +69,4 @@ mysh> exit
 | `execute.c` / `execute.h` | Pipeline execution, glob expansion, fork/pipe/dup2 |
 | `builtins.c` / `builtins.h` | Built-in commands |
 | `history.c` / `history.h` | Command history storage |
-| `test.sh` | Automated test suite (31 tests) |
+| `test.sh` | Automated test suite (47 tests) |
